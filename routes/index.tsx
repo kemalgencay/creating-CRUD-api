@@ -1,25 +1,25 @@
-import { useSignal } from "@preact/signals";
-import Counter from "../islands/Counter.tsx";
+import { Handlers } from "$fresh/server.ts";
 
-export default function Home() {
-  const count = useSignal(3);
-  return (
-    <div class="px-4 py-8 mx-auto bg-[#86efac]">
-      <div class="max-w-screen-md mx-auto flex flex-col items-center justify-center">
-        <img
-          class="my-6"
-          src="/logo.svg"
-          width="128"
-          height="128"
-          alt="the Fresh logo: a sliced lemon dripping with juice"
-        />
-        <h1 class="text-4xl font-bold">Welcome to Fresh</h1>
-        <p class="my-4">
-          İlk sayfanızda, Fresh uygulamanızın ilk sayfası. Bu sayfayı düzenleyerek
-          <code class="mx-2">./routes/index.tsx</code> file, and refresh.
-        </p>
-        <Counter count={count} />
-      </div>
-    </div>
-  );
-}
+type User = {
+  id: string;
+  name: string;
+};
+
+const kv = await Deno.openKv();
+
+export const handler: Handlers<User | null> = {
+  async GET(_req, _ctx) {
+    const users = [];
+    for await (const res of kv.list({ prefix: ["user"] })) {
+      users.push(res.value);
+    }
+    return new Response(JSON.stringify(users));
+  },
+  async POST(req, _ctx) {
+    const user = (await req.json()) as User;
+    const userKey = ["user", user.id];
+    const ok = await kv.atomic().set(userKey, user).commit();
+    if (!ok) throw new Error("Something went wrong.");
+    return new Response(JSON.stringify(user));
+  },
+};
