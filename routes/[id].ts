@@ -5,7 +5,7 @@ type User = {
   id: string;
   name: string;
 };
-const kv = await Deno.openKv();
+const kv: Deno.Kv = await Deno.openKv();
 
 export const handler: Handlers<User | null> = {
   async GET(_req, ctx) {
